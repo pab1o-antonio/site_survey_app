@@ -89,167 +89,174 @@
     }
 
     Future<void> _generatePdf() async {
-      final pdf = pw.Document();
-      final navyBlue = PdfColors.blue900;
-
-      // FOLIO SIZE (8.5" x 13")
-      final folioFormat = PdfPageFormat(8.5 * PdfPageFormat.inch, 13 * PdfPageFormat.inch);
-      final pageMargin = const pw.EdgeInsets.all(PdfPageFormat.inch * 0.5);
-
-      pw.MemoryImage? logoImage;
       try {
-        final byteData = await rootBundle.load('assets/TSV_LOGO1-removebg-preview.png');
-        logoImage = pw.MemoryImage(byteData.buffer.asUint8List());
-      } catch (e) {
-        debugPrint("Logo not found: $e");
-      }
+        final pdf = pw.Document();
+        final navyBlue = PdfColors.blue900;
 
-      final headerStyle = pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: navyBlue);
-      final labelStyle = pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700);
-      final valueStyle = pw.TextStyle(fontSize: 11, color: PdfColors.black);
+        final folioFormat = PdfPageFormat(8.5 * PdfPageFormat.inch, 13 * PdfPageFormat.inch);
+        final pageMargin = const pw.EdgeInsets.all(PdfPageFormat.inch * 0.5);
 
-      // --- PAGE 1: DATA SUMMARY ---
-      pdf.addPage(
-        pw.Page(
-          pageFormat: folioFormat,
-          margin: pageMargin,
-          build: (pw.Context context) {
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    if (logoImage != null) pw.Image(logoImage, width: 180, height: 50, fit: pw.BoxFit.contain),
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.end,
-                      children: [
-                        pw.Text("TECHNICAL SURVEY REPORT", style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                        pw.Text("TRG-TSV", style: pw.TextStyle(fontSize: 9)),
-                      ],
-                    ),
-                  ],
-                ),
-                pw.SizedBox(height: 10),
-                pw.Divider(color: navyBlue, thickness: 2),
-                pw.SizedBox(height: 20),
-                pw.Text("I. GENERAL INFORMATION", style: headerStyle),
-                pw.SizedBox(height: 8),
-                pw.Table(
-                  border: pw.TableBorder.all(color: PdfColors.grey300),
-                  children: [
-                    _pdfRow("Date of Survey", _currentDate, labelStyle, valueStyle),
-                    _pdfRow("Distrito", _distritoController.text, labelStyle, valueStyle),
-                    _pdfRow("Lokal", _lokalController.text, labelStyle, valueStyle),
-                    _pdfRow("Seating Capacity", _capacityController.text, labelStyle, valueStyle),
-                    _pdfRow("Chapel Type", _chapelType, labelStyle, valueStyle),
-                    _pdfRow("Surveyor", _surveyorController.text, labelStyle, valueStyle),
-                  ],
-                ),
-                pw.SizedBox(height: 20),
-                pw.Text("II. TECHNICAL SPECIFICATIONS", style: headerStyle),
-                pw.SizedBox(height: 8),
-                pw.Table(
-                  border: pw.TableBorder.all(color: PdfColors.grey300),
-                  children: [
-                    _pdfRow("TSV Room Location", _roomCurrentLocController.text, labelStyle, valueStyle),
-                    _pdfRow("Recommendation", _roomRecController.text, labelStyle, valueStyle),
-                    _pdfRow("TSV Panel Present", _hasTsvPanel ? "YES" : "NO", labelStyle, valueStyle),
-                    _pdfRow("CCTV System Present", _hasCctv ? "YES" : "NO", labelStyle, valueStyle),
-                    if (_hasCctv) ...[
-                      _pdfRow("CCTV Brand/Model", _cctvBrandModelController.text, labelStyle, valueStyle),
-                      _pdfRow("Camera Type", _cameraType, labelStyle, valueStyle),
-                      _pdfRow("Total Camera Count", _cameraCountController.text, labelStyle, valueStyle),
-                    ],
-                  ],
-                ),
-                pw.SizedBox(height: 50),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.end,
-                  children: [
-                    pw.Column(
-                      children: [
-                        pw.SizedBox(width: 200, child: pw.Divider(thickness: 1)),
-                        pw.Text(_surveyorController.text, style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                        pw.Text("Surveyor Signature over Printed Name", style: pw.TextStyle(fontSize: 9)),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            );
-          },
-        ),
-      );
-
-      // --- PHOTO PAGES: 2 PHOTOS PER PAGE ---
-      List<String> activePhotos = _photoRequirements.where((req) => _capturedPhotos.containsKey(req)).toList();
-
-      for (int i = 0; i < activePhotos.length; i += 2) {
-        String req1 = activePhotos[i];
-        final img1 = await _getImage(_capturedPhotos[req1]!);
-
-        String? req2;
-        pw.MemoryImage? img2;
-        if (i + 1 < activePhotos.length) {
-          req2 = activePhotos[i + 1];
-          img2 = await _getImage(_capturedPhotos[req2]!);
+        pw.MemoryImage? logoImage;
+        try {
+          // Use a more robust check for the logo
+          final byteData = await rootBundle.load('assets/TSV_LOGO1-removebg-preview.png');
+          logoImage = pw.MemoryImage(byteData.buffer.asUint8List());
+        } catch (e) {
+          debugPrint("Logo not found, continuing without it: $e");
         }
 
+        final headerStyle = pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: navyBlue);
+        final labelStyle = pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700);
+        final valueStyle = pw.TextStyle(fontSize: 11, color: PdfColors.black);
+
+        // --- PAGE 1 ---
         pdf.addPage(
           pw.Page(
             pageFormat: folioFormat,
             margin: pageMargin,
             build: (pw.Context context) {
               return pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Center(
-                    child: pw.Column(
-                      children: [
-                        pw.Text("DOCUMENTATION: $req1", style: headerStyle),
-                        pw.SizedBox(height: 8),
-                        pw.Container(
-                          decoration: pw.BoxDecoration(border: pw.Border.all(color: navyBlue, width: 1)),
-                          child: pw.Image(img1, width: 480, height: 300, fit: pw.BoxFit.fill),
-                        ),
-                      ],
-                    ),
-                  ),
-                  pw.SizedBox(height: 40),
-                  if (req2 != null && img2 != null)
-                    pw.Center(
-                      child: pw.Column(
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      if (logoImage != null) pw.Image(logoImage, width: 180, height: 50, fit: pw.BoxFit.contain),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.end,
                         children: [
-                          pw.Text("DOCUMENTATION: $req2", style: headerStyle),
-                          pw.SizedBox(height: 8),
-                          pw.Container(
-                            decoration: pw.BoxDecoration(border: pw.Border.all(color: navyBlue, width: 1)),
-                            child: pw.Image(img2, width: 480, height: 300, fit: pw.BoxFit.fill),
-                          ),
+                          pw.Text("TECHNICAL SURVEY REPORT", style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                          pw.Text("TRG-TSV", style: pw.TextStyle(fontSize: 9)),
                         ],
                       ),
-                    ),
+                    ],
+                  ),
+                  pw.SizedBox(height: 10),
+                  pw.Divider(color: navyBlue, thickness: 2),
+                  pw.SizedBox(height: 20),
+                  pw.Text("I. GENERAL INFORMATION", style: headerStyle),
+                  pw.SizedBox(height: 8),
+                  pw.Table(
+                    border: pw.TableBorder.all(color: PdfColors.grey300),
+                    children: [
+                      _pdfRow("Date of Survey", _currentDate, labelStyle, valueStyle),
+                      _pdfRow("Distrito", _distritoController.text, labelStyle, valueStyle),
+                      _pdfRow("Lokal", _lokalController.text, labelStyle, valueStyle),
+                      _pdfRow("Seating Capacity", _capacityController.text, labelStyle, valueStyle),
+                      _pdfRow("Chapel Type", _chapelType, labelStyle, valueStyle),
+                      _pdfRow("Surveyor", _surveyorController.text, labelStyle, valueStyle),
+                    ],
+                  ),
+                  pw.SizedBox(height: 20),
+                  pw.Text("II. TECHNICAL SPECIFICATIONS", style: headerStyle),
+                  pw.SizedBox(height: 8),
+                  pw.Table(
+                    border: pw.TableBorder.all(color: PdfColors.grey300),
+                    children: [
+                      _pdfRow("TSV Room Location", _roomCurrentLocController.text, labelStyle, valueStyle),
+                      _pdfRow("Recommendation", _roomRecController.text, labelStyle, valueStyle),
+                      _pdfRow("TSV Panel Present", _hasTsvPanel ? "YES" : "NO", labelStyle, valueStyle),
+                      _pdfRow("CCTV System Present", _hasCctv ? "YES" : "NO", labelStyle, valueStyle),
+                      if (_hasCctv) ...[
+                        _pdfRow("CCTV Brand/Model", _cctvBrandModelController.text, labelStyle, valueStyle),
+                        _pdfRow("Camera Type", _cameraType, labelStyle, valueStyle),
+                        _pdfRow("Total Camera Count", _cameraCountController.text, labelStyle, valueStyle),
+                      ],
+                    ],
+                  ),
+                  pw.SizedBox(height: 50),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.end,
+                    children: [
+                      pw.Column(
+                        children: [
+                          pw.SizedBox(width: 200, child: pw.Divider(thickness: 1)),
+                          pw.Text(_surveyorController.text, style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                          pw.Text("Surveyor Signature over Printed Name", style: pw.TextStyle(fontSize: 9)),
+                        ],
+                      ),
+                    ],
+                  ),
                 ],
               );
             },
           ),
         );
-      }
 
-      String district = _distritoController.text.trim();
-      String lokal = _lokalController.text.trim();
-      String fileName = (district.isNotEmpty && lokal.isNotEmpty)
-          ? "${district}_${lokal}.pdf"
-          : "Chapel_Report_${DateTime.now().millisecondsSinceEpoch}.pdf";
+        // --- PHOTO PAGES ---
+        List<String> activePhotos = _photoRequirements.where((req) => _capturedPhotos.containsKey(req)).toList();
 
-      if (kIsWeb) {
-        await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save(), name: fileName);
-      } else {
-        final output = await getApplicationDocumentsDirectory();
-        final file = File("${output.path}/$fileName");
-        await file.writeAsBytes(await pdf.save());
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("PDF Saved as $fileName")));
+        for (int i = 0; i < activePhotos.length; i += 2) {
+          String req1 = activePhotos[i];
+          final img1 = await _getImage(_capturedPhotos[req1]!);
+
+          String? req2;
+          pw.MemoryImage? img2;
+          if (i + 1 < activePhotos.length) {
+            req2 = activePhotos[i + 1];
+            img2 = await _getImage(_capturedPhotos[req2]!);
+          }
+
+          pdf.addPage(
+            pw.Page(
+              pageFormat: folioFormat,
+              margin: pageMargin,
+              build: (pw.Context context) {
+                return pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.Center(
+                      child: pw.Column(
+                        children: [
+                          pw.Text("DOCUMENTATION: $req1", style: headerStyle),
+                          pw.SizedBox(height: 8),
+                          pw.Container(
+                            decoration: pw.BoxDecoration(border: pw.Border.all(color: navyBlue, width: 1)),
+                            child: pw.Image(img1, width: 480, height: 300, fit: pw.BoxFit.fill),
+                          ),
+                        ],
+                      ),
+                    ),
+                    pw.SizedBox(height: 40),
+                    if (req2 != null && img2 != null)
+                      pw.Center(
+                        child: pw.Column(
+                          children: [
+                            pw.Text("DOCUMENTATION: $req2", style: headerStyle),
+                            pw.SizedBox(height: 8),
+                            pw.Container(
+                              decoration: pw.BoxDecoration(border: pw.Border.all(color: navyBlue, width: 1)),
+                              child: pw.Image(img2, width: 480, height: 300, fit: pw.BoxFit.fill),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          );
+        }
+
+        String district = _distritoController.text.trim();
+        String lokal = _lokalController.text.trim();
+        String fileName = (district.isNotEmpty && lokal.isNotEmpty)
+            ? "${district}_${lokal}.pdf"
+            : "Chapel_Report_${DateTime.now().millisecondsSinceEpoch}.pdf";
+
+        if (kIsWeb) {
+          await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save(), name: fileName);
+        } else {
+          final output = await getApplicationDocumentsDirectory();
+          final file = File("${output.path}/$fileName");
+          await file.writeAsBytes(await pdf.save());
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("PDF Saved as $fileName")));
+        }
+      } catch (e) {
+        debugPrint("PDF Generation Error: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error generating PDF: $e"), backgroundColor: Colors.red),
+        );
       }
     }
 

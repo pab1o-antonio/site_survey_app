@@ -1,0 +1,35 @@
+  name: Deploy to GitHub Pages
+  on:
+    push:
+      branches: [ main ] # Palitan ng 'master' kung iyon ang pangalan ng branch mo
+
+  jobs:
+    build:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v3
+        - uses: subosito/flutter-action@v2
+          with:
+            channel: 'stable'
+        - run: flutter pub get
+        - run: flutter build web --base-href "/site_survey_app/" # Siguraduhin na tugma ito sa pangalan ng repo mo
+        - name: Upload artifact
+          uses: actions/upload-artifact@v3
+          with:
+            name: build-artifacts
+            path: build/web
+
+    deploy:
+      needs: build
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v3
+        - name: Download build artifacts
+          uses: actions/download-artifact@v3
+          with:
+            name: build-artifacts
+            path: build/web
+        - uses: peaceiris/ghpages@v3
+          with:
+            github_token: ${{ secrets.GITHUB_TOKEN }}
+            publish_dir: build/web
