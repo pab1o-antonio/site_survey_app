@@ -101,7 +101,7 @@
         final byteData = await rootBundle.load('assets/TSV_LOGO1-removebg-preview.png');
         logoImage = pw.MemoryImage(byteData.buffer.asUint8List());
       } catch (e) {
-        print("Logo not found: $e");
+        debugPrint("Logo not found: $e");
       }
 
       final headerStyle = pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: navyBlue);
@@ -182,7 +182,7 @@
         ),
       );
 
-      // --- PHOTO PAGES: 2 PHOTOS PER PAGE (Centered & Uniform) ---
+      // --- PHOTO PAGES: 2 PHOTOS PER PAGE ---
       List<String> activePhotos = _photoRequirements.where((req) => _capturedPhotos.containsKey(req)).toList();
 
       for (int i = 0; i < activePhotos.length; i += 2) {
@@ -202,9 +202,8 @@
             margin: pageMargin,
             build: (pw.Context context) {
               return pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.center, // Center content
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: [
-                  // First Photo Block
                   pw.Center(
                     child: pw.Column(
                       children: [
@@ -212,20 +211,12 @@
                         pw.SizedBox(height: 8),
                         pw.Container(
                           decoration: pw.BoxDecoration(border: pw.Border.all(color: navyBlue, width: 1)),
-                          child: pw.Image(
-                            img1,
-                            width: 480,
-                            height: 300,
-                            fit: pw.BoxFit.fill // STRETCH to make them uniform
-                          ),
+                          child: pw.Image(img1, width: 480, height: 300, fit: pw.BoxFit.fill),
                         ),
                       ],
                     ),
                   ),
-
-                  pw.SizedBox(height: 40), // Gap between photos
-
-                  // Second Photo Block
+                  pw.SizedBox(height: 40),
                   if (req2 != null && img2 != null)
                     pw.Center(
                       child: pw.Column(
@@ -234,12 +225,7 @@
                           pw.SizedBox(height: 8),
                           pw.Container(
                             decoration: pw.BoxDecoration(border: pw.Border.all(color: navyBlue, width: 1)),
-                            child: pw.Image(
-                              img2,
-                              width: 480,
-                              height: 300,
-                              fit: pw.BoxFit.fill // STRETCH to make them uniform
-                            ),
+                            child: pw.Image(img2, width: 480, height: 300, fit: pw.BoxFit.fill),
                           ),
                         ],
                       ),
@@ -251,19 +237,14 @@
         );
       }
 
-      // FIX FILENAME: "District_Local Name.pdf"
       String district = _distritoController.text.trim();
       String lokal = _lokalController.text.trim();
-
       String fileName = (district.isNotEmpty && lokal.isNotEmpty)
           ? "${district}_${lokal}.pdf"
           : "Chapel_Report_${DateTime.now().millisecondsSinceEpoch}.pdf";
 
       if (kIsWeb) {
-        await Printing.layoutPdf(
-          onLayout: (PdfPageFormat format) async => pdf.save(),
-          name: fileName
-        );
+        await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save(), name: fileName);
       } else {
         final output = await getApplicationDocumentsDirectory();
         final file = File("${output.path}/$fileName");
@@ -303,7 +284,6 @@
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
             children: [
-              // --- APP LOGO HEADER ---
               Container(
                 margin: const EdgeInsets.only(bottom: 25),
                 padding: const EdgeInsets.all(20),
@@ -312,19 +292,15 @@
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
                 ),
-                child: Column(
-                  children: [
-                    Image.asset(
-                      'assets/TSV_LOGO1-removebg-preview.png',
-                      height: 100,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.image_not_supported, size: 80, color: Colors.grey),
-                    ),
-
-                  ],
+                child: Center(
+                  child: Image.asset(
+                    'assets/TSV_LOGO1-removebg-preview.png',
+                    height: 100,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.image_not_supported, size: 80, color: Colors.grey),
+                  ),
                 ),
               ),
-
               _buildModernSection("General Information", const Color(0xFF0D47A1), [
                 _buildTextField(_distritoController, "District Name", Icons.location_city),
                 _buildTextField(_lokalController, "Lokal Name", Icons.home),
@@ -333,9 +309,7 @@
                 _buildDropdown("Chapel Type", ['Standard', 'Large', 'Small', 'Special'], _chapelType, (val) => setState(() => _chapelType = val!)),
                 _buildReadOnlyField(_currentDate, "Date of Survey", Icons.calendar_today),
               ]),
-
               const SizedBox(height: 25),
-
               _buildModernSection("TSV & CCTV Audit", const Color(0xFF2E7D32), [
                 _buildTextField(_roomCurrentLocController, "TSV Room Current Location", Icons.settings_input_component),
                 _buildTextField(_roomRecController, "Room Recommendation", Icons.edit_note),
@@ -347,9 +321,7 @@
                   _buildTextField(_cameraCountController, "Number of Cameras", Icons.camera, isNumber: true),
                 ],
               ]),
-
               const SizedBox(height: 25),
-
               _buildModernSection("Photo Documentation", const Color(0xFFC62828), [
                 ..._photoRequirements.map((req) => PhotoUploadCard(
                   requirement: req,
@@ -358,7 +330,6 @@
                   onGallery: () => _pickImage(req, ImageSource.gallery),
                 )).toList(),
               ]),
-
               const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity,
@@ -396,7 +367,7 @@
               decoration: BoxDecoration(color: color, borderRadius: const BorderRadius.vertical(top: Radius.circular(20))),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.white),
+                  const Icon(Icons.info_outline, color: Colors.white),
                   const SizedBox(width: 10),
                   Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                 ],
@@ -497,7 +468,7 @@
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(requirement, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(imagePath != null ? "✓ Captured" : "Pending", style: TextStyle(color: imagePath != null ? Colors.green[700] : Colors.grey, fontSize: 12)),
                 ],
               ),
